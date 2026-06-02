@@ -7,9 +7,9 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:        # <-- THIS ADDS THE MANUAL RUN BUTTON
+  workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *'   # <-- THIS RUNS IT AUTOMATICALLY EVERY 5 MINUTES
+    - cron: '*/5 * * * *'
 
 jobs:
   tests:
@@ -19,11 +19,13 @@ jobs:
         php-versions: ['8.3']
     name: integration-tests (PHP ${{ matrix.php-versions }})
     steps:
-      - uses: actions/checkout@v4 # Updated to a modern checkout version
+      - uses: actions/checkout@v4
+
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+
       - name: Validate composer.json and composer.lock
         run: composer validate
 
@@ -34,13 +36,20 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('**/composer.lock') }}
+          key: runner.os-matrix.php-version-composer-dependencies-hashFiles('**/composer.lock')
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-
+            runner.os-matrix.php-version-composer-dependencies-
 
       - name: Install dependencies
         run: |
           composer update --prefer-dist --no-progress
+
+      # --- THIS STEP CREATES THE PHYSICAL KEY FILE ---
+      - name: Create Private Key File
+        run: |
+          echo "${{ secrets.OCI_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
       - name: Run test suite
         run: |
           vendor/bin/phpunit --color tests/
@@ -49,8 +58,7 @@ jobs:
           OCI_USER_ID: ${{ secrets.OCI_USER_ID }}
           OCI_TENANCY_ID: ${{ secrets.OCI_TENANCY_ID }}
           OCI_KEY_FINGERPRINT: ${{ secrets.OCI_KEY_FINGERPRINT }}
-          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
-          OCI_PRIVATE_KEY_FILENAME: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_PRIVATE_KEY_FILENAME: ./private_key.pem # Point directly to our newly created file
           OCI_AVAILABILITY_DOMAIN: ${{ secrets.OCI_AVAILABILITY_DOMAIN }}
           OCI_SUBNET_ID: ${{ secrets.OCI_SUBNET_ID }}
           OCI_IMAGE_ID: ${{ secrets.OCI_IMAGE_ID }}
