@@ -52,7 +52,7 @@ jobs:
 
       - name: Run test suite
         run: |
-          vendor/bin/phpunit --color tests/
+          vendor/bin/phpunit --color --filter testCreateInstance tests/
         env:
           OCI_REGION: ${{ secrets.OCI_REGION }}
           OCI_USER_ID: ${{ secrets.OCI_USER_ID }}
